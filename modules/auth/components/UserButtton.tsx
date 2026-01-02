@@ -13,7 +13,6 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuLabel,
-    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
@@ -209,8 +208,6 @@ export default function UserButton({
                     </div>
                 </DropdownMenuLabel>
 
-                <DropdownMenuSeparator />
-
                 {onProfile && (
                     <DropdownMenuItem onClick={onProfile}>
                         <UserIcon className="mr-2 h-4 w-4" />
@@ -231,8 +228,6 @@ export default function UserButton({
                         Settings
                     </DropdownMenuItem>
                 )}
-
-                <DropdownMenuSeparator />
 
                 <DropdownMenuItem
                     onClick={handleLogout}
