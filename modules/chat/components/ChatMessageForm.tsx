@@ -4,20 +4,40 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Send } from "lucide-react";
 import { useState } from "react";
+import { useCreateChat } from "../hook/useCreateChat";
+import { useChatModelStore } from "@/modules/chat/store/modelStore";
+import { toast } from "sonner";
+import { Spinner } from "@/components/ui/spinner";
 
 function ChatMessageForm() {
 
     const [message, setMessage] = useState("");
+    const { mutateAsync, isPending: isChatPending } = useCreateChat();
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
+    const selectedModelId = useChatModelStore(
+        (state) => state.selectedModelId
+    );
 
-        if (!message.trim()) return;
+    if (!selectedModelId) {
+        toast.error("Please select a model");
+        return;
+    }
 
-        // TODO: send message to API
-        console.log("Message:", message);
-
-        setMessage("");
+    const handleSubmit = async (e: React.FormEvent) => {
+        try {
+            e.preventDefault();
+            if (!message.trim()) return;
+            await mutateAsync({
+                content: message,
+                model: selectedModelId
+            })
+            toast.success("Message sent successfully");
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to send message");
+        } finally {
+            setMessage("");
+        }
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -37,15 +57,23 @@ function ChatMessageForm() {
                         placeholder="Type your message here..."
                         onKeyDown={handleKeyDown}
                     />
-                    <Button
-                        type="submit"
-                        size="icon"
-                        variant={message.trim() ? "default" : "ghost"}
-                        className="absolute right-3 bottom-3 h-8 w-8"
-                        disabled={!message.trim()}
-                    >
-                        <Send className="h-4 w-4" />
-                    </Button>
+                    {
+                        isChatPending ? (
+                            <>
+                                <Spinner />
+                            </>
+                        ) : (
+                            <Button
+                                type="submit"
+                                size="icon"
+                                variant={message.trim() ? "default" : "ghost"}
+                                className="absolute right-3 bottom-3 h-8 w-8"
+                                disabled={!message.trim() || isChatPending}
+                            >
+                                <Send className="h-4 w-4" />
+                            </Button>
+                        )
+                    }
                 </div>
             </form>
         </div>
