@@ -25,7 +25,7 @@ import { useRouter } from "next/navigation";
 /* Types */
 /* ------------------------------------------------------------------ */
 
-type User = {
+export type User = {
     id: string;
     name: string | null;
     email: string | null;
@@ -164,7 +164,7 @@ export default function UserButton({
             </DropdownMenuTrigger>
 
             <DropdownMenuContent
-                className="w-72 max-w-sm"
+                className="w-80 max-w-sm"
                 align="end"
                 forceMount
             >
