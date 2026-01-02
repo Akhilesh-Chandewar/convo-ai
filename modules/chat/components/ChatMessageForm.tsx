@@ -45,7 +45,6 @@ function ChatMessageForm() {
                         disabled={!message.trim()}
                     >
                         <Send className="h-4 w-4" />
-                        <span className="sr-only">Send</span>
                     </Button>
                 </div>
             </form>

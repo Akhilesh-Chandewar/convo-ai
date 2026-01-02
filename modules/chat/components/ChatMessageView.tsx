@@ -9,7 +9,7 @@ interface ChatMessageViewProps {
 function ChatMessageView({ user }: ChatMessageViewProps) {
     return (
         <div className='flex flex-col h-screen w-full'>
-            <div className="items-center justify-center w-full mx-auto p-2">
+            <div className="items-center justify-center w-full mx-auto">
                 <ChatWellcomeTabs userName={user?.name || ""} />
                 <ChatMessageForm />
             </div>
