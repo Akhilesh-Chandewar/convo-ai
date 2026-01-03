@@ -3,8 +3,8 @@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Send } from "lucide-react";
-import { useCreateChat } from "../hook/useCreateChat";
-import { useChatModelStore } from "@/modules/chat/store/modelStore";
+import { useCreateChat } from "../hook/chatHook";
+import { useChatModelStore } from "@/modules/chat/store/chatStore";
 import { toast } from "sonner";
 import { Spinner } from "@/components/ui/spinner";
 

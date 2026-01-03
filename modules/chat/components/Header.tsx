@@ -6,7 +6,7 @@ import { ModelSelector } from "./ModelSelector";
 import { useAiModels } from "@/modules/ai-elements/hook/useAiModels";
 import { Spinner } from "@/components/ui/spinner";
 import type { OpenRouterModel } from "./ModelSelector";
-import { useChatModelStore } from "@/modules/chat/store/modelStore";
+import { useChatModelStore } from "@/modules/chat/store/chatStore";
 
 function Header() {
   const { data, isPending } = useAiModels();
