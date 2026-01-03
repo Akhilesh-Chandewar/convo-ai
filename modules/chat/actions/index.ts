@@ -122,3 +122,32 @@ export async function deleteChat(chatId: string) {
         } as const;
     }
 }
+
+export async function getChatById(chatId: string) {
+    try {
+        const user = await getCurrentUser();
+
+        if (!user) {
+            return { success: false, message: "Unauthorized user" } as const;
+        }
+
+        const chat = await prisma.chat.findUnique({
+            where: { id: chatId , userId: user.id },
+            include: {
+                messages: true,
+            },
+        });
+
+        return {
+            success: true,
+            message: "Chat fetched successfully",
+            data: chat,
+        } as const;
+    } catch (error) {
+        console.error("Get chat by id error:", error);
+        return {
+            success: false,
+            message: "Internal server error",
+        } as const;
+    }
+}
