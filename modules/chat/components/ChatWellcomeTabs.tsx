@@ -1,11 +1,21 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Briefcase, Code, GraduationCap, Megaphone, Newspaper, Palette, Sparkles, User } from "lucide-react";
+import {
+    Briefcase,
+    Code,
+    GraduationCap,
+    Megaphone,
+    Newspaper,
+    Palette,
+    Sparkles,
+    User,
+} from "lucide-react";
 import { useState } from "react";
 
-interface ChatMessageViewProps {
+interface ChatWelcomeTabsProps {
     userName: string;
+    onMessageSelect: (message: string) => void;
 }
 
 const CHAT_TAB_MESSAGE = [
@@ -83,18 +93,18 @@ const CHAT_TAB_MESSAGE = [
     },
 ];
 
-
-function ChatWelcomeTabs({ userName }: ChatMessageViewProps) {
+function ChatWelcomeTabs({
+    userName,
+    onMessageSelect,
+}: ChatWelcomeTabsProps) {
     const [activeTab, setActiveTab] = useState(0);
 
     return (
         <div className="w-full space-y-8">
-            {/* Heading */}
             <h1 className="text-4xl font-semibold">
                 How can I help you, {userName}?
             </h1>
 
-            {/* Tabs */}
             <div className="flex flex-wrap gap-2">
                 {CHAT_TAB_MESSAGE.map((tab, index) => (
                     <Button
@@ -109,13 +119,13 @@ function ChatWelcomeTabs({ userName }: ChatMessageViewProps) {
                 ))}
             </div>
 
-            {/* Messages */}
             <div className="h-52 space-y-2 overflow-y-auto">
                 {CHAT_TAB_MESSAGE[activeTab].messages.map((message) => (
                     <Button
                         key={message}
                         variant="outline"
                         className="w-full justify-start text-left whitespace-normal"
+                        onClick={() => onMessageSelect(message)}
                     >
                         {message}
                     </Button>
@@ -124,6 +134,5 @@ function ChatWelcomeTabs({ userName }: ChatMessageViewProps) {
         </div>
     );
 }
-
 
 export default ChatWelcomeTabs;
