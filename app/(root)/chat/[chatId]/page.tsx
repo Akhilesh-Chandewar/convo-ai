@@ -11,7 +11,6 @@ export default async function Chat({ params }: ChatPageProps) {
 
   return (
     <>
-      {/* These can still be "use client" components */}
       <ActiveChatLoader chatId={chatId} />
       <MessageWithForm chatId={chatId} />
     </>

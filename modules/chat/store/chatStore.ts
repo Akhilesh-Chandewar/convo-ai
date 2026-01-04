@@ -1,4 +1,5 @@
 "use client";
+
 import { create } from "zustand";
 
 /* -------------------------------------------------------------------------- */
@@ -19,7 +20,7 @@ export const useChatModelStore = create<ChatModelStore>((set) => ({
 /*                                 CHAT STORE                                 */
 /* -------------------------------------------------------------------------- */
 
-interface Chat {
+export interface Chat {
     id: string;
     title: string;
     model: string;
@@ -29,7 +30,7 @@ interface Chat {
     updatedAt: Date;
 }
 
-interface Message {
+export interface Message {
     id: string;
     content: string;
     model?: string | null;
@@ -39,30 +40,63 @@ interface Message {
     updatedAt: Date;
 }
 
+/* -------------------------------------------------------------------------- */
+
 interface ChatStore {
     chats: Chat[];
     activeChatId: string | null;
     messages: Message[];
 
+    /** Auto-trigger protection */
+    triggeredChatIds: Record<string, boolean>;
+
+    /* setters */
     setChats: (chats: Chat[]) => void;
     setMessages: (messages: Message[]) => void;
     setActiveChatId: (id: string | null) => void;
 
+    /* mutations */
     addChat: (chat: Chat) => void;
     addMessage: (message: Message) => void;
     clearMessages: () => void;
+
+    /* auto-trigger helpers */
+    hasChatBeenTriggered: (chatId: string) => boolean;
+    markChatAsTriggered: (chatId: string) => void;
 }
+
+/* -------------------------------------------------------------------------- */
 
 export const useChatStore = create<ChatStore>((set, get) => ({
     chats: [],
     activeChatId: null,
     messages: [],
 
-    setChats: (chats) => set({ chats }),
-    setActiveChatId: (id) => set({ activeChatId: id }),
-    setMessages: (messages) => set({ messages }),
+    triggeredChatIds: {},
 
-    addChat: (chat) => set({ chats: [...get().chats, chat] }),
-    addMessage: (message) => set({ messages: [...get().messages, message] }),
+    /* setters */
+    setChats: (chats) => set({ chats }),
+    setMessages: (messages) => set({ messages }),
+    setActiveChatId: (id) => set({ activeChatId: id }),
+
+    /* mutations */
+    addChat: (chat) =>
+        set((state) => ({ chats: [...state.chats, chat] })),
+
+    addMessage: (message) =>
+        set((state) => ({ messages: [...state.messages, message] })),
+
     clearMessages: () => set({ messages: [] }),
+
+    hasChatBeenTriggered: (chatId) => {
+        return Boolean(get().triggeredChatIds[chatId]);
+    },
+
+    markChatAsTriggered: (chatId) =>
+        set((state) => ({
+            triggeredChatIds: {
+                ...state.triggeredChatIds,
+                [chatId]: true,
+            },
+        })),
 }));
