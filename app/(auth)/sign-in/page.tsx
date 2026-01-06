@@ -6,13 +6,28 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signIn } from "@/lib/auth-client";
 import { Github } from "lucide-react";
+import Link from "next/link";
 
 export default function SignInPage() {
     const [email, setEmail] = React.useState("");
     const [password, setPassword] = React.useState("");
     const [loading, setLoading] = React.useState(false);
+    const [error, setError] = React.useState("");
 
     async function handleEmailSignIn() {
+        // Clear previous errors
+        setError("");
+
+        // Client-side validation
+        if (!email.trim()) {
+            setError("Email is required");
+            return;
+        }
+        if (!password.trim()) {
+            setError("Password is required");
+            return;
+        }
+
         try {
             setLoading(true);
             await signIn.email({
@@ -20,9 +35,10 @@ export default function SignInPage() {
                 password,
                 callbackURL: "/",
             });
-        } catch (error) {
+        } catch (error: any) {
             console.error(error);
-            alert("Invalid email or password");
+            const errorMessage = error?.message || error?.error?.message || "Invalid email or password";
+            setError(errorMessage);
         } finally {
             setLoading(false);
         }
@@ -40,6 +56,13 @@ export default function SignInPage() {
 
                 {/* Email + Password */}
                 <div className="space-y-4">
+                    {/* Error Message */}
+                    {error && (
+                        <div className="p-3 text-sm text-red-600 bg-red-50 dark:bg-red-950/30 dark:text-red-400 border border-red-200 dark:border-red-900 rounded-md">
+                            {error}
+                        </div>
+                    )}
+
                     <div className="space-y-1">
                         <Label htmlFor="email">Email</Label>
                         <Input
@@ -96,6 +119,17 @@ export default function SignInPage() {
                     <Github className="w-4 h-4" />
                     Sign in with GitHub
                 </Button>
+
+                {/* Sign Up Link */}
+                <div className="text-center text-sm text-muted-foreground">
+                    Don't have an account?{" "}
+                    <Link
+                        href="/sign-up"
+                        className="font-medium text-primary hover:underline"
+                    >
+                        Sign up
+                    </Link>
+                </div>
             </div>
         </section>
     );

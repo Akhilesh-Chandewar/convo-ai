@@ -5,14 +5,33 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { signUp } from "@/lib/auth-client";
+import Link from "next/link";
 
 export default function SignUpPage() {
     const [email, setEmail] = React.useState("");
     const [password, setPassword] = React.useState("");
     const [username, setUsername] = React.useState("");
     const [loading, setLoading] = React.useState(false);
+    const [error, setError] = React.useState("");
 
     async function handleSignUp() {
+        // Clear previous errors
+        setError("");
+
+        // Client-side validation
+        if (!username.trim()) {
+            setError("Username is required");
+            return;
+        }
+        if (!email.trim()) {
+            setError("Email is required");
+            return;
+        }
+        if (password.length < 8) {
+            setError("Password must be at least 8 characters long");
+            return;
+        }
+
         try {
             setLoading(true);
             await signUp.email({
@@ -21,9 +40,11 @@ export default function SignUpPage() {
                 name: username,
                 callbackURL: "/",
             });
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
-            alert("Sign-up failed");
+            // Display the actual error message from the API
+            const errorMessage = err?.message || err?.error?.message || "Sign-up failed. Please try again.";
+            setError(errorMessage);
         } finally {
             setLoading(false);
         }
@@ -40,6 +61,13 @@ export default function SignUpPage() {
                 </div>
 
                 <div className="space-y-4">
+                    {/* Error Message */}
+                    {error && (
+                        <div className="p-3 text-sm text-red-600 bg-red-50 dark:bg-red-950/30 dark:text-red-400 border border-red-200 dark:border-red-900 rounded-md">
+                            {error}
+                        </div>
+                    )}
+
                     <div>
                         <Label htmlFor="username">Username</Label>
                         <Input
@@ -68,6 +96,7 @@ export default function SignUpPage() {
                             type="password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
+                            placeholder="Min. 8 characters"
                         />
                     </div>
 
@@ -78,6 +107,17 @@ export default function SignUpPage() {
                     >
                         {loading ? "Creating account..." : "Sign up"}
                     </Button>
+
+                    {/* Sign In Link */}
+                    <div className="text-center text-sm text-muted-foreground">
+                        Already have an account?{" "}
+                        <Link
+                            href="/sign-in"
+                            className="font-medium text-primary hover:underline"
+                        >
+                            Sign in
+                        </Link>
+                    </div>
                 </div>
             </div>
         </section>
