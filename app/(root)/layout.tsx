@@ -6,6 +6,8 @@ import Header from "@/modules/chat/components/Header";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+
 async function layout({ children }: { children: React.ReactNode }) {
     const session = await auth.api.getSession({
         headers: await headers(),
