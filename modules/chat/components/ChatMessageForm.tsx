@@ -1,12 +1,13 @@
 "use client";
 
+import { Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Send } from "lucide-react";
+import { toast } from "sonner";
+
 import { useCreateChat } from "../hook/chatHook";
 import { useChatModelStore } from "@/modules/chat/store/chatStore";
-import { toast } from "sonner";
-import { Spinner } from "@/components/ui/spinner";
+import { cn } from "@/lib/utils";
 
 interface ChatMessageFormProps {
     message: string;
@@ -17,14 +18,17 @@ function ChatMessageForm({
     message,
     onMessageChange,
 }: ChatMessageFormProps) {
-    const { mutateAsync, isPending: isChatPending } = useCreateChat();
+    const { mutateAsync, isPending } = useCreateChat();
 
+    // Model still comes from store (no selector UI)
     const selectedModelId = useChatModelStore(
         (state) => state.selectedModelId
     );
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSubmit = async (
+        e?: React.FormEvent | React.KeyboardEvent
+    ) => {
+        e?.preventDefault();
 
         if (!selectedModelId) {
             toast.error("Please select a model");
@@ -39,44 +43,47 @@ function ChatMessageForm({
                 model: selectedModelId,
             });
 
-            toast.success("Message sent successfully");
             onMessageChange("");
-        } catch (error) {
-            console.error(error);
+        } catch {
             toast.error("Failed to send message");
         }
     };
 
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-        if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            handleSubmit(e as unknown as React.FormEvent);
-        }
-    };
-
     return (
-        <div className="w-full mx-auto">
-            <form onSubmit={handleSubmit}>
-                <div className="relative rounded-2xl border border-border shadow-sm bg-background">
+        <div className="w-full max-w-4xl mx-auto px-4 pb-4">
+            <form onSubmit={handleSubmit} className="relative">
+                {/* Input Container */}
+                <div className="rounded-2xl border bg-background shadow-sm">
+                    {/* Textarea */}
                     <Textarea
                         value={message}
                         onChange={(e) => onMessageChange(e.target.value)}
-                        placeholder="Type your message here..."
-                        onKeyDown={handleKeyDown}
-                    />
-                    <Button
-                        type="submit"
-                        size="icon"
-                        variant={message.trim() ? "default" : "ghost"}
-                        className="absolute right-3 bottom-3 h-8 w-8"
-                        disabled={!message.trim() || isChatPending}
-                    >
-                        {isChatPending ? (
-                            <Spinner className="h-4 w-4" />
-                        ) : (
-                            <Send className="h-4 w-4" />
+                        placeholder="Type your message…"
+                        className={cn(
+                            "min-h-[60px] max-h-[200px]",
+                            "resize-none border-0 bg-transparent",
+                            "px-4 py-3 text-base",
+                            "focus-visible:ring-0 focus-visible:ring-offset-0"
                         )}
-                    </Button>
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                                handleSubmit(e);
+                            }
+                        }}
+                    />
+
+                    {/* Toolbar */}
+                    <div className="flex items-center justify-end px-3 py-2 border-t">
+                        <Button
+                            type="submit"
+                            size="icon"
+                            disabled={!message.trim() || isPending}
+                            className="rounded-full"
+                            aria-label="Send message"
+                        >
+                            <Send className="h-4 w-4" />
+                        </Button>
+                    </div>
                 </div>
             </form>
         </div>

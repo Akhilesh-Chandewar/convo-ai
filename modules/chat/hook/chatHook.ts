@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { createChatWithMessage, deleteChat, getChatById } from "../actions";
+import { createChatWithMessage, deleteChat, getChatById, saveErrorToDb } from "../actions";
 import { toast } from "sonner";
 
 export function useCreateChat() {

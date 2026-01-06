@@ -1,35 +1,30 @@
 "use client";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { useChat, type UIMessage } from "@ai-sdk/react";
+import { useChat } from "@ai-sdk/react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useGetChatById } from "@/modules/chat/hook/chatHook";
-import { useAiModels } from "@/modules/ai-elements/hook/useAiModels";
+import { saveErrorToDb } from "@/modules/chat/actions";
 import { useChatStore } from "@/modules/chat/store/chatStore";
 import {
   Conversation,
   ConversationContent,
   ConversationScrollButton,
 } from "@/components/ai-elements/conversation";
-import { Message, MessageContent } from "@/components/ai-elements/message";
+import { Message, MessageContent, MessageResponse } from "@/components/ai-elements/message";
 import {
   Reasoning,
   ReasoningContent,
   ReasoningTrigger,
 } from "@/components/ai-elements/reasoning";
-import {
-  PromptInput,
-  PromptInputBody,
-  PromptInputButton,
-  PromptInputSubmit,
-  PromptInputTextarea,
-  PromptInputTools,
-} from "@/components/ai-elements/prompt-input";
-import { ModelSelector } from "@/modules/chat/components/ModelSelector";
 import { Spinner } from "@/components/ui/spinner";
 import {
   RotateCcwIcon,
   StopCircleIcon,
+  Send,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ */
 /* Types                                                              */
@@ -51,13 +46,10 @@ type NormalizedMessage = {
 /* ------------------------------------------------------------------ */
 /* Custom Response Component                                          */
 /* ------------------------------------------------------------------ */
-const ResponseText = ({ children }: { children?: string }) => {
-  return <span>{children}</span>;
-};
+
 
 /* ------------------------------------------------------------------ */
-export default function MessageViewWithForm({ chatId }: Props) {
-  const { data: models, isPending: isModelLoading } = useAiModels();
+export default function MessageWithForm({ chatId }: Props) {
   const { data, isPending } = useGetChatById(chatId);
   const { hasChatBeenTriggered, markChatAsTriggered } = useChatStore();
   const [selectedModel, setSelectedModel] = useState<string | undefined>(
@@ -98,16 +90,28 @@ export default function MessageViewWithForm({ chatId }: Props) {
   /* ------------------------------------------------------------------ */
   /* useChat                                                            */
   /* ------------------------------------------------------------------ */
-  const { stop, messages, status, sendMessage, regenerate } = useChat();
+  /* ------------------------------------------------------------------ */
+  /* useChat                                                            */
+  /* ------------------------------------------------------------------ */
+  const { stop, messages, status, sendMessage, regenerate, setMessages, error } = useChat({
+    id: chatId,
+    onError: (error) => {
+      saveErrorToDb(chatId, error.message);
+    }
+  });
 
   /* ------------------------------------------------------------------ */
   /* Model sync                                                         */
   /* ------------------------------------------------------------------ */
+  const hasInitializedModel = useRef(false);
+
   useEffect(() => {
-    if (data?.data?.model && !selectedModel) {
+    if (!hasInitializedModel.current && data?.data?.model) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedModel(data.data.model);
+      hasInitializedModel.current = true;
     }
-  }, [data, selectedModel]);
+  }, [data]);
 
   /* ------------------------------------------------------------------ */
   /* Auto trigger                                                       */
@@ -125,7 +129,7 @@ export default function MessageViewWithForm({ chatId }: Props) {
     hasAutoTriggered.current = true;
     markChatAsTriggered(chatId);
     sendMessage(
-      { text: "" }, // FIX #1: Changed from null to ""
+      { text: "" },
       {
         body: {
           model: selectedModel,
@@ -147,9 +151,49 @@ export default function MessageViewWithForm({ chatId }: Props) {
   ]);
 
   /* ------------------------------------------------------------------ */
+  /* Sync messages to useChat                                           */
+  /* ------------------------------------------------------------------ */
+  const hasSyncedMessages = useRef(false);
+
+  useEffect(() => {
+    if (
+      !hasSyncedMessages.current &&
+      initialMessages.length > 0 &&
+      messages.length === 0
+    ) {
+      const simplifiedMessages = initialMessages.map((msg) => ({
+        id: msg.id,
+        role: msg.role,
+        content: msg.parts.map((p) => p.text).join(""),
+        parts: msg.parts, // Pass parts directly as they are compatible or required
+        createdAt: msg.createdAt,
+      }));
+      // TypeScript/SDK might expect specific Part types, but passing our parts satisfies the requirement that 'parts' exists.
+      // @ts-expect-error - Parts types might not perfectly overlap but are sufficient for UI
+      setMessages(simplifiedMessages);
+      hasSyncedMessages.current = true;
+    }
+  }, [initialMessages, messages.length, setMessages]);
+
+  /* ------------------------------------------------------------------ */
+  /* Auto-scroll to bottom on new messages                              */
+  /* ------------------------------------------------------------------ */
+  useEffect(() => {
+    // Small delay to ensure DOM has updated
+    const timer = setTimeout(() => {
+      const conversationElement = document.querySelector('[role="log"]');
+      if (conversationElement) {
+        conversationElement.scrollTop = conversationElement.scrollHeight;
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [messages.length, status]);
+
+  /* ------------------------------------------------------------------ */
   /* Handlers                                                           */
   /* ------------------------------------------------------------------ */
-  const handleSubmit = () => {
+  const handleSubmit = (e?: React.FormEvent | React.KeyboardEvent) => {
+    e?.preventDefault();
     if (!input.trim() || !selectedModel) return;
     sendMessage(
       { text: input },
@@ -165,6 +209,7 @@ export default function MessageViewWithForm({ chatId }: Props) {
   const handleRetry = () => regenerate();
   const handleStop = () => stop();
 
+
   /* ------------------------------------------------------------------ */
   if (isPending) {
     return (
@@ -174,62 +219,68 @@ export default function MessageViewWithForm({ chatId }: Props) {
     );
   }
 
-  const messagesToRender: NormalizedMessage[] = [
-    ...initialMessages,
-    ...(messages as NormalizedMessage[]),
-  ];
+  // Use synced messages if available to avoid duplication and ensure state consistency
+  const messagesToRender: NormalizedMessage[] =
+    (messages.length > 0
+      ? (messages as unknown as NormalizedMessage[])
+      : initialMessages
+    ).filter((msg) => !(msg.role === "user" && !(msg as any).content && (!msg.parts || msg.parts.length === 0 || msg.parts.every(p => !p.text))));
 
   /* ------------------------------------------------------------------ */
+  /* ------------------------------------------------------------------ */
   return (
-    <div className="max-w-4xl mx-auto p-6 relative h-[calc(100vh-4rem)]">
-      <Conversation className="h-full">
-        <ConversationContent>
+    <div className="flex flex-col h-[calc(100vh-4rem)] w-full">
+      <Conversation className="flex-1 overflow-y-hidden [scrollbar-gutter:stable]">
+        <ConversationContent className="max-w-4xl mx-auto w-full">
           {messagesToRender.length === 0 ? (
             <div className="flex items-center justify-center h-full text-gray-500">
               Start a conversation...
             </div>
           ) : (
-            messagesToRender.map((message) => (
-              <Fragment key={message.id}>
-                {message.parts.map((part, i) => {
-                  if (part.type === "text") {
-                    return (
-                      <Message from={message.role} key={`${message.id}-${i}`}>
-                        <MessageContent>
-                          <ResponseText>{part.text}</ResponseText> {/* FIX #2 */}
-                        </MessageContent>
-                      </Message>
-                    );
-                  }
-                  if (part.type === "reasoning") {
-                    return (
-                      <Reasoning
-                        key={`${message.id}-${i}`}
-                        className="max-w-2xl px-4 py-4 border border-muted rounded-md bg-muted/50"
-                      >
-                        <ReasoningTrigger />
-                        <ReasoningContent className="mt-2 italic font-light text-muted-foreground">
+            messagesToRender.map((message) => {
+              // Fallback for new messages that might not have parts yet (if SDK adds them without parts)
+              const parts = message.parts || [{ type: "text", text: (message as any).content }];
+
+              return (
+                <Fragment key={message.id}>
+                  {parts.map((part, i) => {
+                    if (part.type === "text") {
+                      return (
+                        <Message from={message.role} key={`${message.id}-${i}`}>
                           <MessageContent>
-                            <ResponseText>{part.text ?? ""}</ResponseText>
+                            <MessageResponse>{part.text}</MessageResponse>
                           </MessageContent>
-                        </ReasoningContent>
-                      </Reasoning>
-                    );
-                  }
-                  if (part.type === "step-start" && i > 0) {
-                    return (
-                      <div
-                        key={`${message.id}-${i}`}
-                        className="my-4 text-gray-500"
-                      >
-                        <hr />
-                      </div>
-                    );
-                  }
-                  return null;
-                })}
-              </Fragment>
-            ))
+                        </Message>
+                      );
+                    }
+                    if (part.type === "reasoning") {
+                      return (
+                        <Reasoning
+                          key={`${message.id}-${i}`}
+                          className="max-w-2xl px-4 py-4 border border-muted rounded-md bg-muted/50"
+                        >
+                          <ReasoningTrigger />
+                          <ReasoningContent className="mt-2 italic font-light text-muted-foreground">
+                            {part.text ?? ""}
+                          </ReasoningContent>
+                        </Reasoning>
+                      );
+                    }
+                    if (part.type === "step-start" && i > 0) {
+                      return (
+                        <div
+                          key={`${message.id}-${i}`}
+                          className="my-4 text-gray-500"
+                        >
+                          <hr />
+                        </div>
+                      );
+                    }
+                    return null;
+                  })}
+                </Fragment>
+              );
+            })
           )}
           {status === "streaming" && (
             <div className="flex items-center gap-2 text-muted-foreground">
@@ -241,45 +292,63 @@ export default function MessageViewWithForm({ chatId }: Props) {
         <ConversationScrollButton />
       </Conversation>
 
-      <PromptInput onSubmit={handleSubmit} className="mt-4">
-        <PromptInputBody>
-          <PromptInputTextarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Type your message..."
-            disabled={status === "streaming"}
-          />
-        </PromptInputBody>
-
-        {/* FIX #4: Using div instead of PromptInputToolbar */}
-        <div className="flex items-center justify-between mt-2">
-          <PromptInputTools className="flex items-center gap-2">
-            {isModelLoading ? (
-              <Spinner />
-            ) : (
-              <ModelSelector
-                models={models?.models}
-                selectedModelId={selectedModel ?? null}
-                onModelSelect={setSelectedModel}
+      <div className="w-full shrink-0 overflow-y-hidden [scrollbar-gutter:stable]">
+        <div className="w-full max-w-4xl mx-auto px-4 pb-4">
+          {error && (
+            <div className="mb-4 rounded-lg border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive flex items-center gap-2">
+              <StopCircleIcon className="h-4 w-4" />
+              <span>{error.message || "An error occurred. Please try again."}</span>
+            </div>
+          )}
+          <form onSubmit={handleSubmit} className="relative">
+            <div className="rounded-2xl border bg-background shadow-sm">
+              <Textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Type your message..."
+                className={cn(
+                  "min-h-[60px] max-h-[200px]",
+                  "resize-none border-0 bg-transparent",
+                  "px-4 py-3 text-base",
+                  "focus-visible:ring-0 focus-visible:ring-offset-0"
+                )}
+                disabled={status === "streaming"}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    handleSubmit(e);
+                  }
+                }}
               />
-            )}
-            {status === "streaming" ? (
-              <PromptInputButton onClick={handleStop}>
-                <StopCircleIcon size={16} />
-                <span>Stop</span>
-              </PromptInputButton>
-            ) : (
-              messagesToRender.length > 0 && (
-                <PromptInputButton onClick={handleRetry}>
-                  <RotateCcwIcon size={16} />
-                  <span>Retry</span>
-                </PromptInputButton>
-              )
-            )}
-          </PromptInputTools>
-          <PromptInputSubmit status={status} />
+              <div className="flex items-center justify-between px-3 py-2 border-t">
+                <div className="flex items-center gap-2">
+                  {status === "streaming" ? (
+                    <Button type="button" variant="ghost" size="sm" onClick={handleStop} className="h-8 px-2">
+                      <StopCircleIcon className="mr-2 h-4 w-4" />
+                      Stop
+                    </Button>
+                  ) : (
+                    messagesToRender.length > 0 && (
+                      <Button type="button" variant="ghost" size="sm" onClick={handleRetry} className="h-8 px-2">
+                        <RotateCcwIcon className="mr-2 h-4 w-4" />
+                        Retry
+                      </Button>
+                    )
+                  )}
+                </div>
+
+                <Button
+                  type="submit"
+                  size="icon"
+                  disabled={!input.trim() || status === "streaming"}
+                  className="rounded-full"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </form>
         </div>
-      </PromptInput>
+      </div>
     </div>
   );
 }

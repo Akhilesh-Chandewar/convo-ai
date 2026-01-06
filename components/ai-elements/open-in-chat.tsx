@@ -134,10 +134,10 @@ const providers = {
       </svg>
     ),
   },
-  t3: {
-    title: "Open in T3 Chat",
+  convoAI: {
+    title: "Open in Convo AI",
     createUrl: (q: string) =>
-      `https://t3.chat/new?${new URLSearchParams({
+      `https://convo.ai/new?${new URLSearchParams({
         q,
       })}`,
     icon: <MessageCircleIcon />,
@@ -284,20 +284,20 @@ export const OpenInClaude = (props: OpenInClaudeProps) => {
   );
 };
 
-export type OpenInT3Props = ComponentProps<typeof DropdownMenuItem>;
+export type OpenInConvoAIProps = ComponentProps<typeof DropdownMenuItem>;
 
-export const OpenInT3 = (props: OpenInT3Props) => {
+export const OpenInConvoAI = (props: OpenInConvoAIProps) => {
   const { query } = useOpenInContext();
   return (
     <DropdownMenuItem asChild {...props}>
       <a
         className="flex items-center gap-2"
-        href={providers.t3.createUrl(query)}
+        href={providers.convoAI.createUrl(query)}
         rel="noopener"
         target="_blank"
       >
-        <span className="shrink-0">{providers.t3.icon}</span>
-        <span className="flex-1">{providers.t3.title}</span>
+        <span className="shrink-0">{providers.convoAI.icon}</span>
+        <span className="flex-1">{providers.convoAI.title}</span>
         <ExternalLinkIcon className="size-4 shrink-0" />
       </a>
     </DropdownMenuItem>

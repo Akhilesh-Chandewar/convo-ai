@@ -27,7 +27,7 @@ function ActiveChatLoader({ chatId }: ActiveChatLoaderProps) {
     }
   }, [data, chats, setMessages, addChat]
   );
-  return null;
+  return <></>;
 }
 
 export default ActiveChatLoader;

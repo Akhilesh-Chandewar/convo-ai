@@ -132,7 +132,7 @@ export async function getChatById(chatId: string) {
         }
 
         const chat = await prisma.chat.findUnique({
-            where: { id: chatId , userId: user.id },
+            where: { id: chatId, userId: user.id },
             include: {
                 messages: true,
             },
@@ -145,6 +145,46 @@ export async function getChatById(chatId: string) {
         } as const;
     } catch (error) {
         console.error("Get chat by id error:", error);
+        return {
+            success: false,
+            message: "Internal server error",
+        } as const;
+    }
+}
+
+export async function saveErrorToDb(chatId: string, content: string) {
+    try {
+        const user = await getCurrentUser();
+
+        if (!user) {
+            return { success: false, message: "Unauthorized user" } as const;
+        }
+
+        const chat = await prisma.chat.findUnique({
+            where: { id: chatId, userId: user.id },
+        });
+
+        if (!chat) {
+            return { success: false, message: "Chat not found" } as const;
+        }
+
+        await prisma.message.create({
+            data: {
+                chatId,
+                content: JSON.stringify([{ type: "text", text: content }]),
+                messageRole: MessageRole.ASSISTANT,
+                messageType: MessageType.ERROR,
+                model: chat.model,
+            },
+        });
+
+        return {
+            success: true,
+            message: "Error saved successfully",
+        } as const;
+
+    } catch (error) {
+        console.error("Save error to db error:", error);
         return {
             success: false,
             message: "Internal server error",
