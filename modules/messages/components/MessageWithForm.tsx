@@ -206,7 +206,15 @@ export default function MessageWithForm({ chatId }: Props) {
     );
     setInput("");
   };
-  const handleRetry = () => regenerate();
+  const handleRetry = () => {
+    if (!selectedModel) return;
+    regenerate({
+      body: {
+        model: selectedModel,
+        chatId,
+      },
+    });
+  };
   const handleStop = () => stop();
 
 

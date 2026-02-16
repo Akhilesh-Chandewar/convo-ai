@@ -35,9 +35,9 @@ export default function SignInPage() {
                 password,
                 callbackURL: "/",
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error(error);
-            const errorMessage = error?.message || error?.error?.message || "Invalid email or password";
+            const errorMessage = error instanceof Error ? error.message : "Invalid email or password";
             setError(errorMessage);
         } finally {
             setLoading(false);
@@ -105,24 +105,20 @@ export default function SignInPage() {
                     </div>
                 </div>
 
-                {/* GitHub OAuth */}
+                {/* GitHub OAuth - Disabled for now */}
                 <Button
                     variant="outline"
                     className="w-full flex items-center gap-2"
-                    onClick={() =>
-                        signIn.social({
-                            provider: "github",
-                            callbackURL: "/",
-                        })
-                    }
+                    disabled
+                    title="GitHub OAuth coming soon"
                 >
                     <Github className="w-4 h-4" />
-                    Sign in with GitHub
+                    Sign in with GitHub (Coming soon)
                 </Button>
 
                 {/* Sign Up Link */}
                 <div className="text-center text-sm text-muted-foreground">
-                    Don't have an account?{" "}
+                        Don&apos;t have an account?{" "}
                     <Link
                         href="/sign-up"
                         className="font-medium text-primary hover:underline"

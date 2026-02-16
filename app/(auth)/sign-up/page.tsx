@@ -40,10 +40,10 @@ export default function SignUpPage() {
                 name: username,
                 callbackURL: "/",
             });
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error(err);
             // Display the actual error message from the API
-            const errorMessage = err?.message || err?.error?.message || "Sign-up failed. Please try again.";
+            const errorMessage = err instanceof Error ? err.message : "Sign-up failed. Please try again.";
             setError(errorMessage);
         } finally {
             setLoading(false);

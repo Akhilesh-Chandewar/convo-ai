@@ -72,10 +72,8 @@ export default function UserButton({
 
     const onSignOut = async () => {
         await signOut({
-            fetchOptions: {
-                onSuccess: () => {
-                    router.push("/sign-in");
-                },
+            onSuccess: () => {
+                router.push("/sign-in");
             },
         });
     };

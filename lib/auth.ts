@@ -1,39 +1,81 @@
-// lib/auth.ts
-import { betterAuth } from "better-auth";
-import { prismaAdapter } from "better-auth/adapters/prisma";
-import { prisma } from "@/lib/databaseConnection";
+import { cookies } from "next/headers";
+import {
+    verifyTokenAndGetSession,
+    getUserById,
+    AuthUser,
+} from "./auth-server";
 
-export const auth = betterAuth({
-    database: prismaAdapter(prisma, {
-        provider: "postgresql",
-    }),
+export interface Session {
+    user: AuthUser;
+    token: string;
+}
 
-    // 🔐 Email / Username / Password
-    credentials: {
-        emailAndPassword: {
-            enabled: true,
+/**
+ * Auth object with API methods for server-side auth
+ */
+export const auth = {
+    api: {
+        /**
+         * Get current session from request headers/cookies
+         */
+        async getSession({
+            headers,
+        }: {
+            headers: Headers;
+        }): Promise<Session | null> {
+            // Try to get token from Authorization header
+            const authHeader = headers.get("Authorization");
+            let token = authHeader?.replace("Bearer ", "");
 
-            // ✅ allow username during signup
-            username: {
-                enabled: true,
-                unique: true,
-            },
+            // If no token in header, try cookies
+            if (!token) {
+                const cookieHeader = headers.get("cookie");
+                if (cookieHeader) {
+                    const cookies = cookieHeader.split(";");
+                    const authCookie = cookies.find((c) =>
+                        c.trim().startsWith("auth_token=")
+                    );
+                    if (authCookie) {
+                        token = authCookie.split("=")[1];
+                    }
+                }
+            }
 
-            // ⚠️ set to true in production
-            requireEmailVerification: false,
+            if (!token) {
+                return null;
+            }
 
-            // optional but recommended
-            password: {
-                minLength: 8,
-            },
+            const session = await verifyTokenAndGetSession(token);
+            if (!session) {
+                return null;
+            }
+
+            return session;
         },
     },
+};
 
-    // 🌐 OAuth providers
-    socialProviders: {
-        github: {
-            clientId: process.env.GITHUB_CLIENT_ID!,
-            clientSecret: process.env.GITHUB_CLIENT_SECRET!,
-        },
-    },
-});
+/**
+ * Get current user from cookies (for server components)
+ */
+export async function getCurrentSession(): Promise<Session | null> {
+    const cookieStore = await cookies();
+    const token = cookieStore.get("auth_token")?.value;
+
+    if (!token) {
+        return null;
+    }
+
+    return verifyTokenAndGetSession(token);
+}
+
+/**
+ * Get current user from cookies (for server components)
+ */
+export async function getCurrentUser(): Promise<AuthUser | null> {
+    const session = await getCurrentSession();
+    if (!session) {
+        return null;
+    }
+    return session.user;
+}

@@ -1,14 +1,11 @@
 "use server";
 
 import { prisma } from "@/lib/databaseConnection";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { getCurrentSession } from "@/lib/auth";
 
 export const getCurrentUser = async () => {
     try {
-        const session = await auth.api.getSession({
-            headers: await headers(),
-        });
+        const session = await getCurrentSession();
 
         if (!session?.user?.id) {
             return null;

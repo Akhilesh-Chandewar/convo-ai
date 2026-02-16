@@ -88,6 +88,21 @@ export async function POST(request: NextRequest) {
             : [body.messages];
 
         /* -------------------------------------------------------------- */
+        /* Validate required fields                                       */
+        /* -------------------------------------------------------------- */
+        if (!model) {
+            return new Response(
+                JSON.stringify({
+                    error: "No model provided. Please select a model and try again.",
+                }),
+                {
+                    status: 400,
+                    headers: { "Content-Type": "application/json" },
+                }
+            );
+        }
+
+        /* -------------------------------------------------------------- */
         /* Load previous messages                                         */
         /* -------------------------------------------------------------- */
 
