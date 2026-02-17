@@ -326,6 +326,6 @@ MIT License - see [LICENSE](./LICENSE) for details
 
 ---
 
-Built with ❤️ by [Your Name](https://github.com/yourusername)
+Built with ❤️ by [Akhil](https://github.com/Akhilesh-Chandewar)
 
 **Star ⭐ this repo if you find it helpful!**
